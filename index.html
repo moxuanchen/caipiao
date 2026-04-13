@@ -522,6 +522,18 @@
     .card-desc { padding-left: 0; }
     .history-list li { flex-direction: column; align-items: flex-start; }
     .history-time { align-self: flex-end; }
+    
+    /* 针对手机端优化快乐8的显示 */
+    #kl8-result .ball {
+      min-width: 24px;
+      height: 24px;
+      font-size: 10px;
+    }
+    
+    /* 确保在手机端球之间的间距也适当缩小 */
+    #kl8-result .result-row {
+      gap: 3px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -705,7 +717,8 @@
     listEl.innerHTML = html;
   }
 
-  // ---------- 原有彩票函数，修改为保存每一注 ----------
+  // ---------- 彩票函数 ----------
+  // 随机选号函数
   function pickRandom(min, max, count) {
     const pool = [];
     for (let i = min; i <= max; i++) pool.push(i);
@@ -717,6 +730,14 @@
     return result.map(n => String(n).padStart(2, '0'));
   }
 
+  // 数字排序函数（从小到大）
+  function sortNumbersAsc(arr) {
+    return arr.map(num => parseInt(num, 10))
+              .sort((a, b) => a - b)
+              .map(num => String(num).padStart(2, '0'));
+  }
+
+  // 构建一行结果
   function buildRow(frontBalls, backBalls, frontClass, backClass, isBlock, delay) {
     const row = document.createElement('div');
     row.className = 'result-row';
@@ -760,7 +781,7 @@
     return row;
   }
 
-  // 辅助：格式化大乐透/双色球/快乐8 号码为字符串
+  // 辅助：格式化号码为字符串
   function formatNumbers(front, back, isBlock = false) {
     let frontStr = front.join(' ');
     if (isBlock) frontStr = front[0]; // 七星彩是六位数整体
@@ -770,21 +791,24 @@
     return frontStr;
   }
 
-  // 大乐透
+  // 大乐透 - 前后区分别排序
   function genDaLeTou(count) {
     const area = document.getElementById('dlt-result');
     area.innerHTML = '';
     for (let r = 0; r < count; r++) {
       const front = pickRandom(1, 35, 5);
       const back = pickRandom(1, 12, 2);
-      area.appendChild(buildRow(front, back, 'ball-red', 'ball-blue', false, r * 0.1));
+      // 前后区分别排序
+      const sortedFront = sortNumbersAsc(front);
+      const sortedBack = sortNumbersAsc(back);
+      area.appendChild(buildRow(sortedFront, sortedBack, 'ball-red', 'ball-blue', false, r * 0.1));
       // 保存历史
-      const numbersStr = formatNumbers(front, back);
+      const numbersStr = formatNumbers(sortedFront, sortedBack);
       saveHistory('大乐透', numbersStr);
     }
   }
 
-  // 七星彩
+  // 七星彩 - 不排序
   function genQiXingCai(count) {
     const area = document.getElementById('qxc-result');
     area.innerHTML = '';
@@ -797,27 +821,32 @@
     }
   }
 
-  // 双色球
+  // 双色球 - 前后区分别排序
   function genShuangSeQiu(count) {
     const area = document.getElementById('ssq-result');
     area.innerHTML = '';
     for (let r = 0; r < count; r++) {
       const front = pickRandom(1, 33, 6);
       const back = pickRandom(1, 16, 1);
-      area.appendChild(buildRow(front, back, 'ball-red', 'ball-blue', false, r * 0.1));
-      const numbersStr = formatNumbers(front, back);
+      // 前后区分别排序
+      const sortedFront = sortNumbersAsc(front);
+      const sortedBack = sortNumbersAsc(back);
+      area.appendChild(buildRow(sortedFront, sortedBack, 'ball-red', 'ball-blue', false, r * 0.1));
+      const numbersStr = formatNumbers(sortedFront, sortedBack);
       saveHistory('双色球', numbersStr);
     }
   }
 
-  // 快乐8
+  // 快乐8 - 排序（只有一个区）
   function genKuaiLe8(count) {
     const area = document.getElementById('kl8-result');
     area.innerHTML = '';
     for (let r = 0; r < count; r++) {
       const nums = pickRandom(1, 80, 10);
-      area.appendChild(buildRow(nums, null, 'ball-green', '', false, r * 0.1));
-      const numbersStr = nums.join(' ');
+      // 排序
+      const sortedNums = sortNumbersAsc(nums);
+      area.appendChild(buildRow(sortedNums, null, 'ball-green', '', false, r * 0.1));
+      const numbersStr = sortedNums.join(' ');
       saveHistory('快乐8', numbersStr);
     }
   }
