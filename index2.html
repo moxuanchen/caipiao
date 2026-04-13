@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>彩票随机选号系统 - 带历史记录</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+  /* ... 原有样式保持不变 ... */
+  :root {
+    --bg: #0a0e17;
+    --bg-card: #111827;
+    --fg: #f1f5f9;
+    --muted: #64748b;
+    --border: #1e293b;
+    --accent-red: #ef4444;
+    --accent-gold: #f59e0b;
+    --accent-blue: #3b82f6;
+    --accent-green: #10b981;
+    --accent-purple: #8b5cf6;
+    --ball-red: linear-gradient(135deg, #ef4444 0%, #dc2626 50%, #b91c1c 100%);
+    --ball-blue: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
+    --ball-gold: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+    --ball-green: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%);
+    --ball-purple: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%);
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .bg-decoration {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    animation: blobFloat 20s ease-in-out infinite;
+  }
+
+  .bg-blob:nth-child(1) {
+    width: 500px; height: 500px;
+    background: var(--accent-red);
+    top: -10%; left: -10%;
+  }
+
+  .bg-blob:nth-child(2) {
+    width: 400px; height: 400px;
+    background: var(--accent-gold);
+    top: 40%; right: -5%;
+    animation-delay: -7s;
+  }
+
+  .bg-blob:nth-child(3) {
+    width: 350px; height: 350px;
+    background: var(--accent-blue);
+    bottom: -5%; left: 30%;
+    animation-delay: -14s;
+  }
+
+  @keyframes blobFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -40px) scale(1.1); }
+    66% { transform: translate(-20px, 30px) scale(0.9); }
+  }
+
+  .bg-grid {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  header .icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-gold));
+    margin-bottom: 20px;
+    font-size: 32px;
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+
+  @keyframes iconPulse {
+    0%, 100% { box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3); }
+    50% { box-shadow: 0 8px 48px rgba(239, 68, 68, 0.5); }
+  }
+
+  header h1 {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  header p {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .lottery-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .lottery-card:hover {
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+
+  .card-header .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-tc { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+  .badge-fc { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+
+  .card-header h2 {
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    padding-left: 44px;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+  }
+
+  .btn:active::after {
+    width: 300px;
+    height: 300px;
+  }
+
+  .btn-red {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(239,68,68,0.3);
+  }
+  .btn-red:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(239,68,68,0.4);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(245,158,11,0.3);
+  }
+  .btn-gold:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(245,158,11,0.4);
+  }
+
+  .btn-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(16,185,129,0.3);
+  }
+  .btn-green:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(16,185,129,0.4);
+  }
+
+  .btn-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(139,92,246,0.3);
+  }
+  .btn-purple:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(139,92,246,0.4);
+  }
+
+  .result-area {
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .result-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: clamp(3px, 1.2vw, 8px);
+    padding: 8px 0;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: rowIn 0.4s ease forwards;
+  }
+
+  @keyframes rowIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .separator {
+    width: 2px;
+    height: clamp(26px, 7.5vw, 36px);
+    background: rgba(255,255,255,0.12);
+    border-radius: 1px;
+    flex-shrink: 0;
+    margin: 0 clamp(1px, 0.3vw, 4px);
+  }
+
+  .ball {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: clamp(26px, 7.5vw, 44px);
+    height: clamp(26px, 7.5vw, 44px);
+    border-radius: 50%;
+    font-size: clamp(11px, 3.2vw, 16px);
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+    position: relative;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow:
+      inset 0 -3px 6px rgba(0,0,0,0.2),
+      inset 0 3px 6px rgba(255,255,255,0.15),
+      0 2px 8px rgba(0,0,0,0.3);
+    animation: ballPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  .ball::before {
+    content: '';
+    position: absolute;
+    top: clamp(3px, 0.8vw, 5px);
+    left: clamp(5px, 1.5vw, 8px);
+    width: clamp(8px, 2.5vw, 14px);
+    height: clamp(5px, 1.3vw, 8px);
+    background: rgba(255,255,255,0.35);
+    border-radius: 50%;
+    transform: rotate(-20deg);
+  }
+
+  @keyframes ballPop {
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .ball-red { background: var(--ball-red); }
+  .ball-blue { background: var(--ball-blue); }
+  .ball-gold { background: var(--ball-gold); }
+  .ball-green { background: var(--ball-green); }
+  .ball-purple { background: var(--ball-purple); }
+
+  .num-block {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(2px, 0.6vw, 4px);
+    flex-shrink: 0;
+  }
+
+  .num-digit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(22px, 6vw, 36px);
+    height: clamp(26px, 7.5vw, 44px);
+    border-radius: 8px;
+    font-size: clamp(13px, 3.8vw, 20px);
+    font-weight: 900;
+    color: #fff;
+    background: var(--ball-red);
+    box-shadow:
+      inset 0 -2px 4px rgba(0,0,0,0.2),
+      inset 0 2px 4px rgba(255,255,255,0.1),
+      0 2px 8px rgba(0,0,0,0.3);
+    animation: ballPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    opacity: 0;
+    transform: scale(0.3);
+    position: relative;
+  }
+
+  .num-digit::before {
+    content: '';
+    position: absolute;
+    top: clamp(3px, 0.7vw, 4px);
+    left: clamp(4px, 1vw, 6px);
+    width: clamp(6px, 1.8vw, 10px);
+    height: clamp(3px, 0.9vw, 6px);
+    background: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    transform: rotate(-20deg);
+  }
+
+  .hint {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    padding: 10px 0;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  .hint i { margin-right: 6px; }
+
+  /* 历史记录面板样式 */
+  .history-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-top: 32px;
+    overflow: hidden;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .history-header:hover {
+    background: rgba(255,255,255,0.05);
+  }
+
+  .history-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .history-header h3 i {
+    color: var(--accent-gold);
+  }
+
+  .history-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .history-actions button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .history-actions button:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--fg);
+  }
+
+  .history-content {
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    padding: 0 16px 16px;
+  }
+
+  .history-content.open {
+    display: block;
+  }
+
+  .history-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .history-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    gap: 12px;
+  }
+
+  .history-numbers {
+    font-family: monospace;
+    font-weight: 600;
+    color: var(--accent-gold);
+    word-break: break-word;
+    flex: 1;
+  }
+
+  .history-time {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .empty-history {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  footer .disclaimer {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  footer .disclaimer i { color: var(--accent-gold); }
+  footer .copyright { font-size: 12px; color: rgba(100,116,139,0.6); }
+
+  @media (max-width: 480px) {
+    header h1 { font-size: 26px; }
+    .lottery-card { padding: 20px; }
+    .card-desc { padding-left: 0; }
+    .history-list li { flex-direction: column; align-items: flex-start; }
+    .history-time { align-self: flex-end; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-decoration">
+  <div class="bg-blob"></div>
+  <div class="bg-blob"></div>
+  <div class="bg-blob"></div>
+</div>
+<div class="bg-grid"></div>
+
+<div class="container">
+  <header>
+    <div class="icon-wrap">
+      <i class="fas fa-dice"></i>
+    </div>
+    <h1>彩票随机选号系统</h1>
+    <p>为您提供专业的彩票随机选号服务 · 自动保存历史记录</p>
+  </header>
+
+  <main>
+    <!-- 原有四个卡片，内容不变 -->
+    <section class="lottery-card" aria-label="体彩大乐透">
+      <div class="card-header">
+        <span class="badge badge-tc">体彩</span>
+        <h2>大乐透</h2>
+      </div>
+      <p class="card-desc">前区 01~35 选五，后区 01~12 选二</p>
+      <div class="btn-group">
+        <button class="btn btn-red" onclick="genDaLeTou(1)"><i class="fas fa-random"></i>&nbsp; 机选1注</button>
+        <button class="btn btn-gold" onclick="genDaLeTou(5)"><i class="fas fa-layer-group"></i>&nbsp; 机选5注</button>
+      </div>
+      <div class="result-area" id="dlt-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
+    </section>
+
+    <section class="lottery-card" aria-label="体彩七星彩">
+      <div class="card-header">
+        <span class="badge badge-tc">体彩</span>
+        <h2>七星彩</h2>
+      </div>
+      <p class="card-desc">前区 000000~999999 选一个六位数，后区 0~14 选一个数字</p>
+      <div class="btn-group">
+        <button class="btn btn-red" onclick="genQiXingCai(1)"><i class="fas fa-random"></i>&nbsp; 机选1注</button>
+        <button class="btn btn-gold" onclick="genQiXingCai(5)"><i class="fas fa-layer-group"></i>&nbsp; 机选5注</button>
+      </div>
+      <div class="result-area" id="qxc-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
+    </section>
+
+    <section class="lottery-card" aria-label="福彩双色球">
+      <div class="card-header">
+        <span class="badge badge-fc">福彩</span>
+        <h2>双色球</h2>
+      </div>
+      <p class="card-desc">前区 01~33 选六，后区 01~16 选一</p>
+      <div class="btn-group">
+        <button class="btn btn-green" onclick="genShuangSeQiu(1)"><i class="fas fa-random"></i>&nbsp; 机选1注</button>
+        <button class="btn btn-purple" onclick="genShuangSeQiu(5)"><i class="fas fa-layer-group"></i>&nbsp; 机选5注</button>
+      </div>
+      <div class="result-area" id="ssq-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
+    </section>
+
+    <section class="lottery-card" aria-label="福彩快乐8">
+      <div class="card-header">
+        <span class="badge badge-fc">福彩</span>
+        <h2>快乐8</h2>
+      </div>
+      <p class="card-desc">01~80 选十</p>
+      <div class="btn-group">
+        <button class="btn btn-green" onclick="genKuaiLe8(1)"><i class="fas fa-random"></i>&nbsp; 机选1注</button>
+        <button class="btn btn-purple" onclick="genKuaiLe8(5)"><i class="fas fa-layer-group"></i>&nbsp; 机选5注</button>
+      </div>
+      <div class="result-area" id="kl8-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
+    </section>
+
+    <!-- 历史记录面板 -->
+    <div class="history-panel">
+      <div class="history-header" id="historyHeader">
+        <h3><i class="fas fa-history"></i> 历史记录</h3>
+        <div class="history-actions">
+          <button id="exportHistoryBtn" title="导出为文本文件"><i class="fas fa-download"></i> 导出</button>
+          <button id="clearHistoryBtn" title="清空所有历史"><i class="fas fa-trash-alt"></i> 清空</button>
+          <button id="toggleHistoryBtn"><i class="fas fa-chevron-down"></i></button>
+        </div>
+      </div>
+      <div class="history-content" id="historyContent">
+        <ul class="history-list" id="historyList"></ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p class="disclaimer"><i class="fas fa-exclamation-triangle"></i> 本系统仅供娱乐参考，不构成任何投注建议</p>
+    <p class="copyright">&copy; 2023 彩票随机选号系统 · 历史记录保存在您的浏览器中</p>
+  </footer>
+</div>
+
+<script>
+  // ---------- 历史记录功能 ----------
+  const STORAGE_KEY = 'lottery_history';
+  let historyData = [];  // 存储 { id, type, numbersStr, timestamp }
+
+  // 加载历史记录
+  function loadHistory() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        historyData = JSON.parse(stored);
+      } catch(e) { historyData = []; }
+    }
+    if (!Array.isArray(historyData)) historyData = [];
+    renderHistory();
+  }
+
+  // 保存一条记录
+  function saveHistory(type, numbersStr) {
+    const record = {
+      id: Date.now() + Math.random().toString(36).substr(2, 6),
+      type: type,
+      numbersStr: numbersStr,
+      timestamp: new Date().toLocaleString()
+    };
+    historyData.unshift(record); // 最新在前
+    // 最多保留100条，防止localStorage溢出
+    if (historyData.length > 100) historyData = historyData.slice(0, 100);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+    renderHistory();
+  }
+
+  // 清空历史
+  function clearHistory() {
+    if (confirm('确定要清空所有历史记录吗？')) {
+      historyData = [];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
+      renderHistory();
+    }
+  }
+
+  // 导出为txt文件
+  function exportHistory() {
+    if (historyData.length === 0) {
+      alert('暂无历史记录可导出');
+      return;
+    }
+    let content = '彩票选号历史记录\n生成时间：' + new Date().toLocaleString() + '\n\n';
+    historyData.forEach((rec, idx) => {
+      content += `${idx+1}. [${rec.type}] ${rec.numbersStr}\n   时间：${rec.timestamp}\n\n`;
+    });
+    const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `lottery_history_${new Date().toISOString().slice(0,19)}.txt`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  // 渲染历史列表
+  function renderHistory() {
+    const listEl = document.getElementById('historyList');
+    if (!listEl) return;
+    if (historyData.length === 0) {
+      listEl.innerHTML = '<div class="empty-history"><i class="fas fa-inbox"></i> 暂无历史记录，点击机选按钮后会自动保存</div>';
+      return;
+    }
+    let html = '';
+    for (let rec of historyData) {
+      html += `
+        <li>
+          <span class="history-numbers">[${rec.type}] ${rec.numbersStr}</span>
+          <span class="history-time">${rec.timestamp}</span>
+        </li>
+      `;
+    }
+    listEl.innerHTML = html;
+  }
+
+  // ---------- 原有彩票函数，修改为保存每一注 ----------
+  function pickRandom(min, max, count) {
+    const pool = [];
+    for (let i = min; i <= max; i++) pool.push(i);
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      result.push(pool.splice(idx, 1)[0]);
+    }
+    return result.map(n => String(n).padStart(2, '0'));
+  }
+
+  function buildRow(frontBalls, backBalls, frontClass, backClass, isBlock, delay) {
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.style.animationDelay = delay + 's';
+
+    if (isBlock) {
+      const block = document.createElement('div');
+      block.className = 'num-block';
+      const numStr = frontBalls[0];
+      for (let i = 0; i < numStr.length; i++) {
+        const d = document.createElement('span');
+        d.className = 'num-digit';
+        d.textContent = numStr[i];
+        d.style.animationDelay = (delay + 0.04 * i) + 's';
+        block.appendChild(d);
+      }
+      row.appendChild(block);
+    } else {
+      frontBalls.forEach((num, i) => {
+        const ball = document.createElement('span');
+        ball.className = 'ball ' + frontClass;
+        ball.textContent = num;
+        ball.style.animationDelay = (delay + 0.06 * i) + 's';
+        row.appendChild(ball);
+      });
+    }
+
+    if (backBalls && backBalls.length > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'separator';
+      row.appendChild(sep);
+
+      backBalls.forEach((num, i) => {
+        const ball = document.createElement('span');
+        ball.className = 'ball ' + backClass;
+        ball.textContent = num;
+        ball.style.animationDelay = (delay + 0.06 * (frontBalls.length + i) + (isBlock ? 0.24 : 0)) + 's';
+        row.appendChild(ball);
+      });
+    }
+    return row;
+  }
+
+  // 辅助：格式化大乐透/双色球/快乐8 号码为字符串
+  function formatNumbers(front, back, isBlock = false) {
+    let frontStr = front.join(' ');
+    if (isBlock) frontStr = front[0]; // 七星彩是六位数整体
+    if (back && back.length > 0) {
+      return `${frontStr} + ${back.join(' ')}`;
+    }
+    return frontStr;
+  }
+
+  // 大乐透
+  function genDaLeTou(count) {
+    const area = document.getElementById('dlt-result');
+    area.innerHTML = '';
+    for (let r = 0; r < count; r++) {
+      const front = pickRandom(1, 35, 5);
+      const back = pickRandom(1, 12, 2);
+      area.appendChild(buildRow(front, back, 'ball-red', 'ball-blue', false, r * 0.1));
+      // 保存历史
+      const numbersStr = formatNumbers(front, back);
+      saveHistory('大乐透', numbersStr);
+    }
+  }
+
+  // 七星彩
+  function genQiXingCai(count) {
+    const area = document.getElementById('qxc-result');
+    area.innerHTML = '';
+    for (let r = 0; r < count; r++) {
+      const sixDigit = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+      const back = [String(Math.floor(Math.random() * 15)).padStart(2, '0')];
+      area.appendChild(buildRow([sixDigit], back, '', 'ball-blue', true, r * 0.1));
+      const numbersStr = `${sixDigit} + ${back[0]}`;
+      saveHistory('七星彩', numbersStr);
+    }
+  }
+
+  // 双色球
+  function genShuangSeQiu(count) {
+    const area = document.getElementById('ssq-result');
+    area.innerHTML = '';
+    for (let r = 0; r < count; r++) {
+      const front = pickRandom(1, 33, 6);
+      const back = pickRandom(1, 16, 1);
+      area.appendChild(buildRow(front, back, 'ball-red', 'ball-blue', false, r * 0.1));
+      const numbersStr = formatNumbers(front, back);
+      saveHistory('双色球', numbersStr);
+    }
+  }
+
+  // 快乐8
+  function genKuaiLe8(count) {
+    const area = document.getElementById('kl8-result');
+    area.innerHTML = '';
+    for (let r = 0; r < count; r++) {
+      const nums = pickRandom(1, 80, 10);
+      area.appendChild(buildRow(nums, null, 'ball-green', '', false, r * 0.1));
+      const numbersStr = nums.join(' ');
+      saveHistory('快乐8', numbersStr);
+    }
+  }
+
+  // 历史面板折叠/展开
+  function initHistoryUI() {
+    const header = document.getElementById('historyHeader');
+    const content = document.getElementById('historyContent');
+    const toggleBtn = document.getElementById('toggleHistoryBtn');
+    const clearBtn = document.getElementById('clearHistoryBtn');
+    const exportBtn = document.getElementById('exportHistoryBtn');
+
+    let isOpen = false;
+    function toggle() {
+      isOpen = !isOpen;
+      if (isOpen) {
+        content.classList.add('open');
+        toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+      } else {
+        content.classList.remove('open');
+        toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+      }
+    }
+    header.addEventListener('click', (e) => {
+      // 防止点到按钮时触发两次
+      if (e.target.closest('.history-actions')) return;
+      toggle();
+    });
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggle();
+    });
+    clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearHistory();
+    });
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportHistory();
+    });
+    // 默认展开历史面板（方便第一次看到）
+    content.classList.add('open');
+    isOpen = true;
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+  }
+
+  // 页面加载
+  loadHistory();
+  initHistoryUI();
+</script>
+</body>
+</html>
