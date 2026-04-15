@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>彩票随机选号系统 - 带历史记录</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>彩票随机选号系统 - 快乐8多模式 | 带历史记录</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;600;800;900&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
-  /* ... 原有样式保持不变 ... */
+  /* ========== 原有核心样式完全保留 ========== */
   :root {
     --bg: #0a0e17;
     --bg-card: #111827;
@@ -195,6 +195,7 @@
     display: flex;
     gap: 12px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
   }
 
   .btn {
@@ -209,6 +210,11 @@
     transition: all 0.25s;
     position: relative;
     overflow: hidden;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
 
   .btn::after {
@@ -265,6 +271,23 @@
   .btn-purple:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 24px rgba(139,92,246,0.4);
+  }
+
+  /* 快乐8模式切换按钮专用风格 (与机选按钮风格一致: 干净蓝色渐变) */
+  .btn-mode {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+  }
+  .btn-mode:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  /* 当前激活的模式按钮高亮 */
+  .btn-mode.active {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 0 12px rgba(245,158,11,0.6);
+    border: 1px solid rgba(255,215,0,0.3);
   }
 
   .result-area {
@@ -516,23 +539,27 @@
   footer .disclaimer i { color: var(--accent-gold); }
   footer .copyright { font-size: 12px; color: rgba(100,116,139,0.6); }
 
+  /* 响应式适配增强 */
   @media (max-width: 480px) {
     header h1 { font-size: 26px; }
     .lottery-card { padding: 20px; }
     .card-desc { padding-left: 0; }
     .history-list li { flex-direction: column; align-items: flex-start; }
     .history-time { align-self: flex-end; }
-    
-    /* 针对手机端优化快乐8的显示 */
     #kl8-result .ball {
       min-width: 24px;
       height: 24px;
       font-size: 10px;
     }
-    
-    /* 确保在手机端球之间的间距也适当缩小 */
     #kl8-result .result-row {
       gap: 3px;
+    }
+    .btn-group {
+      gap: 8px;
+    }
+    .btn {
+      padding: 10px 12px;
+      font-size: 13px;
     }
   }
 
@@ -563,7 +590,7 @@
   </header>
 
   <main>
-    <!-- 原有四个卡片，内容不变 -->
+    <!-- 体彩大乐透 -->
     <section class="lottery-card" aria-label="体彩大乐透">
       <div class="card-header">
         <span class="badge badge-tc">体彩</span>
@@ -577,6 +604,7 @@
       <div class="result-area" id="dlt-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
     </section>
 
+    <!-- 体彩七星彩 -->
     <section class="lottery-card" aria-label="体彩七星彩">
       <div class="card-header">
         <span class="badge badge-tc">体彩</span>
@@ -590,6 +618,7 @@
       <div class="result-area" id="qxc-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
     </section>
 
+    <!-- 福彩双色球 -->
     <section class="lottery-card" aria-label="福彩双色球">
       <div class="card-header">
         <span class="badge badge-fc">福彩</span>
@@ -603,12 +632,21 @@
       <div class="result-area" id="ssq-result"><div class="hint"><i class="fas fa-hand-pointer"></i>点击上方按钮进行机选</div></div>
     </section>
 
+    <!-- 福彩快乐8 (已增强模式切换) -->
     <section class="lottery-card" aria-label="福彩快乐8">
       <div class="card-header">
         <span class="badge badge-fc">福彩</span>
         <h2>快乐8</h2>
       </div>
-      <p class="card-desc">01~80 选十</p>
+      <p class="card-desc" id="kl8-desc">01~80 选十</p>
+      
+      <!-- 新增模式切换按钮组 (选十/选九/选八) 风格与机选按钮一致 -->
+      <div class="btn-group mode-switch-group">
+        <button class="btn btn-mode" data-kl8-mode="10" id="kl8Mode10">选十</button>
+        <button class="btn btn-mode" data-kl8-mode="9" id="kl8Mode9">选九</button>
+        <button class="btn btn-mode" data-kl8-mode="8" id="kl8Mode8">选八</button>
+      </div>
+      
       <div class="btn-group">
         <button class="btn btn-green" onclick="genKuaiLe8(1)"><i class="fas fa-random"></i>&nbsp; 机选1注</button>
         <button class="btn btn-purple" onclick="genKuaiLe8(5)"><i class="fas fa-layer-group"></i>&nbsp; 机选5注</button>
@@ -639,11 +677,10 @@
 </div>
 
 <script>
-  // ---------- 历史记录功能 ----------
+  // ========== 历史记录模块 (完全保留原有逻辑) ==========
   const STORAGE_KEY = 'lottery_history';
-  let historyData = [];  // 存储 { id, type, numbersStr, timestamp }
+  let historyData = [];
 
-  // 加载历史记录
   function loadHistory() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -655,7 +692,6 @@
     renderHistory();
   }
 
-  // 保存一条记录
   function saveHistory(type, numbersStr) {
     const record = {
       id: Date.now() + Math.random().toString(36).substr(2, 6),
@@ -663,14 +699,12 @@
       numbersStr: numbersStr,
       timestamp: new Date().toLocaleString()
     };
-    historyData.unshift(record); // 最新在前
-    // 最多保留100条，防止localStorage溢出
+    historyData.unshift(record);
     if (historyData.length > 100) historyData = historyData.slice(0, 100);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(historyData));
     renderHistory();
   }
 
-  // 清空历史
   function clearHistory() {
     if (confirm('确定要清空所有历史记录吗？')) {
       historyData = [];
@@ -679,7 +713,6 @@
     }
   }
 
-  // 导出为txt文件
   function exportHistory() {
     if (historyData.length === 0) {
       alert('暂无历史记录可导出');
@@ -697,7 +730,6 @@
     URL.revokeObjectURL(link.href);
   }
 
-  // 渲染历史列表
   function renderHistory() {
     const listEl = document.getElementById('historyList');
     if (!listEl) return;
@@ -717,8 +749,7 @@
     listEl.innerHTML = html;
   }
 
-  // ---------- 彩票函数 ----------
-  // 随机选号函数
+  // ========== 通用随机函数 ==========
   function pickRandom(min, max, count) {
     const pool = [];
     for (let i = min; i <= max; i++) pool.push(i);
@@ -730,19 +761,16 @@
     return result.map(n => String(n).padStart(2, '0'));
   }
 
-  // 数字排序函数（从小到大）
   function sortNumbersAsc(arr) {
     return arr.map(num => parseInt(num, 10))
               .sort((a, b) => a - b)
               .map(num => String(num).padStart(2, '0'));
   }
 
-  // 构建一行结果
   function buildRow(frontBalls, backBalls, frontClass, backClass, isBlock, delay) {
     const row = document.createElement('div');
     row.className = 'result-row';
     row.style.animationDelay = delay + 's';
-
     if (isBlock) {
       const block = document.createElement('div');
       block.className = 'num-block';
@@ -764,12 +792,10 @@
         row.appendChild(ball);
       });
     }
-
     if (backBalls && backBalls.length > 0) {
       const sep = document.createElement('span');
       sep.className = 'separator';
       row.appendChild(sep);
-
       backBalls.forEach((num, i) => {
         const ball = document.createElement('span');
         ball.className = 'ball ' + backClass;
@@ -781,34 +807,21 @@
     return row;
   }
 
-  // 辅助：格式化号码为字符串
-  function formatNumbers(front, back, isBlock = false) {
-    let frontStr = front.join(' ');
-    if (isBlock) frontStr = front[0]; // 七星彩是六位数整体
-    if (back && back.length > 0) {
-      return `${frontStr} + ${back.join(' ')}`;
-    }
-    return frontStr;
-  }
-
-  // 大乐透 - 前后区分别排序
+  // ========== 原有彩票玩法 (完全不变) ==========
   function genDaLeTou(count) {
     const area = document.getElementById('dlt-result');
     area.innerHTML = '';
     for (let r = 0; r < count; r++) {
       const front = pickRandom(1, 35, 5);
       const back = pickRandom(1, 12, 2);
-      // 前后区分别排序
       const sortedFront = sortNumbersAsc(front);
       const sortedBack = sortNumbersAsc(back);
       area.appendChild(buildRow(sortedFront, sortedBack, 'ball-red', 'ball-blue', false, r * 0.1));
-      // 保存历史
-      const numbersStr = formatNumbers(sortedFront, sortedBack);
+      const numbersStr = `${sortedFront.join(' ')} + ${sortedBack.join(' ')}`;
       saveHistory('大乐透', numbersStr);
     }
   }
 
-  // 七星彩 - 不排序
   function genQiXingCai(count) {
     const area = document.getElementById('qxc-result');
     area.innerHTML = '';
@@ -821,37 +834,89 @@
     }
   }
 
-  // 双色球 - 前后区分别排序
   function genShuangSeQiu(count) {
     const area = document.getElementById('ssq-result');
     area.innerHTML = '';
     for (let r = 0; r < count; r++) {
       const front = pickRandom(1, 33, 6);
       const back = pickRandom(1, 16, 1);
-      // 前后区分别排序
       const sortedFront = sortNumbersAsc(front);
       const sortedBack = sortNumbersAsc(back);
       area.appendChild(buildRow(sortedFront, sortedBack, 'ball-red', 'ball-blue', false, r * 0.1));
-      const numbersStr = formatNumbers(sortedFront, sortedBack);
+      const numbersStr = `${sortedFront.join(' ')} + ${sortedBack.join(' ')}`;
       saveHistory('双色球', numbersStr);
     }
   }
 
-  // 快乐8 - 排序（只有一个区）
-  function genKuaiLe8(count) {
+  // ========== 快乐8增强: 支持动态模式(选十/选九/选八) ==========
+  let currentKL8Count = 10;   // 默认为选十模式
+
+  // 更新快乐8模式的UI (高亮按钮 + 描述文本)
+  function setKL8Mode(count) {
+    currentKL8Count = count;
+    // 更新描述文本
+    const descEl = document.getElementById('kl8-desc');
+    if (descEl) {
+      descEl.textContent = `01~80 选${count === 10 ? '十' : (count === 9 ? '九' : '八')}`;
+    }
+    // 更新按钮高亮状态
+    const mode10 = document.getElementById('kl8Mode10');
+    const mode9 = document.getElementById('kl8Mode9');
+    const mode8 = document.getElementById('kl8Mode8');
+    if (mode10) mode10.classList.remove('active');
+    if (mode9) mode9.classList.remove('active');
+    if (mode8) mode8.classList.remove('active');
+    if (count === 10 && mode10) mode10.classList.add('active');
+    else if (count === 9 && mode9) mode9.classList.add('active');
+    else if (count === 8 && mode8) mode8.classList.add('active');
+  }
+
+  // 生成快乐8 (根据当前模式数量)
+  function genKuaiLe8(rounds) {
     const area = document.getElementById('kl8-result');
     area.innerHTML = '';
-    for (let r = 0; r < count; r++) {
-      const nums = pickRandom(1, 80, 10);
-      // 排序
+    for (let r = 0; r < rounds; r++) {
+      // 根据 currentKL8Count 动态生成对应数量的数字
+      const nums = pickRandom(1, 80, currentKL8Count);
       const sortedNums = sortNumbersAsc(nums);
       area.appendChild(buildRow(sortedNums, null, 'ball-green', '', false, r * 0.1));
+      // 构造模式文本: 例如 "快乐8(选十)"
+      const modeText = currentKL8Count === 10 ? '选十' : (currentKL8Count === 9 ? '选九' : '选八');
+      const typeName = `快乐8(${modeText})`;
       const numbersStr = sortedNums.join(' ');
-      saveHistory('快乐8', numbersStr);
+      saveHistory(typeName, numbersStr);
     }
   }
 
-  // 历史面板折叠/展开
+  // 初始化快乐8模式切换按钮事件
+  function initKL8ModeSwitcher() {
+    const mode10Btn = document.getElementById('kl8Mode10');
+    const mode9Btn = document.getElementById('kl8Mode9');
+    const mode8Btn = document.getElementById('kl8Mode8');
+    
+    if (mode10Btn) {
+      mode10Btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setKL8Mode(10);
+      });
+    }
+    if (mode9Btn) {
+      mode9Btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setKL8Mode(9);
+      });
+    }
+    if (mode8Btn) {
+      mode8Btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setKL8Mode(8);
+      });
+    }
+    // 默认激活选十模式
+    setKL8Mode(10);
+  }
+
+  // 历史面板折叠/展开 (完全保留原有逻辑)
   function initHistoryUI() {
     const header = document.getElementById('historyHeader');
     const content = document.getElementById('historyContent');
@@ -871,7 +936,6 @@
       }
     }
     header.addEventListener('click', (e) => {
-      // 防止点到按钮时触发两次
       if (e.target.closest('.history-actions')) return;
       toggle();
     });
@@ -887,15 +951,18 @@
       e.stopPropagation();
       exportHistory();
     });
-    // 默认展开历史面板（方便第一次看到）
+    // 默认展开历史面板
     content.classList.add('open');
     isOpen = true;
     toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
   }
 
-  // 页面加载
-  loadHistory();
-  initHistoryUI();
+  // 页面完全加载后初始化所有内容
+  window.addEventListener('DOMContentLoaded', () => {
+    loadHistory();
+    initHistoryUI();
+    initKL8ModeSwitcher();   // 快乐8模式切换
+  });
 </script>
 </body>
 </html>
